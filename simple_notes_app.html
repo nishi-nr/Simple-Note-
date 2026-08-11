@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<title>Simple Notes</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 480px;
+  }
+  h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+  }
+  .add-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button:hover { background: #2980b9; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    background: white;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  li span {
+    flex: 1;
+    font-size: 15px;
+  }
+  li.done span {
+    text-decoration: line-through;
+    color: #999;
+  }
+  .del-btn {
+    background: #e74c3c;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .del-btn:hover { background: #c0392b; }
+  .empty {
+    text-align: center;
+    color: #999;
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📝 Simple Notes</h1>
+  <div class="add-box">
+    <input type="text" id="noteInput" placeholder="Notun note lekho..." />
+    <button onclick="addNote()">Add</button>
+  </div>
+  <ul id="noteList"></ul>
+  <div id="emptyMsg" class="empty" style="display:none;">Kono note nai. Upore likhe Add korun.</div>
+</div>
+
+<script>
+let notes = [];
+
+async function loadNotes() {
+  try {
+    const result = await window.storage.get('notes-list', false);
+    notes = result ? JSON.parse(result.value) : [];
+  } catch (e) {
+    notes = [];
+  }
+  render();
+}
+
+async function saveNotes() {
+  try {
+    await window.storage.set('notes-list', JSON.stringify(notes), false);
+  } catch (e) {
+    console.error('Save failed', e);
+  }
+}
+
+function addNote() {
+  const input = document.getElementById('noteInput');
+  const text = input.value.trim();
+  if (!text) return;
+  notes.unshift({ id: Date.now(), text: text, done: false });
+  input.value = '';
+  saveNotes();
+  render();
+}
+
+function toggleDone(id) {
+  const n = notes.find(n => n.id === id);
+  if (n) n.done = !n.done;
+  saveNotes();
+  render();
+}
+
+function deleteNote(id) {
+  notes = notes.filter(n => n.id !== id);
+  saveNotes();
+  render();
+}
+
+function render() {
+  const list = document.getElementById('noteList');
+  const emptyMsg = document.getElementById('emptyMsg');
+  list.innerHTML = '';
+  if (notes.length === 0) {
+    emptyMsg.style.display = 'block';
+  } else {
+    emptyMsg.style.display = 'none';
+    notes.forEach(n => {
+      const li = document.createElement('li');
+      if (n.done) li.classList.add('done');
+      li.innerHTML = `
+        <input type="checkbox" ${n.done ? 'checked' : ''} onchange="toggleDone(${n.id})" />
+        <span>${n.text}</span>
+        <button class="del-btn" onclick="deleteNote(${n.id})">Delete</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+}
+
+document.getElementById('noteInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') addNote();
+});
+
+loadNotes();
+</script>
+</body>
+</html>
